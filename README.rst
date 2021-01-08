@@ -33,6 +33,7 @@ you::
 
     $ . setup.sh
 
+You can also specify which Python version to use with e.g. ``-p python3``.
 You might need to install additional system libraries to compile all packages.
 
 ReMU requires Python 2.7 or >=3.4.

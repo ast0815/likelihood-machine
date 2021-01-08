@@ -11,7 +11,7 @@ then
     . "$SCRIPTPATH/ENV/bin/activate"
 else
     # Create a new virtual environment
-    virtualenv "$SCRIPTPATH/ENV"
+    virtualenv $@ "$SCRIPTPATH/ENV"
 
     # Activate the environment
     . "$SCRIPTPATH/ENV/bin/activate" && (
