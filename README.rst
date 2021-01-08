@@ -13,9 +13,14 @@ Installing development version from source
 ------------------------------------------
 
 It is recommended to run this software in a virtual Python environment
-(virtualenv). This ensures that all required packages are present in the
-tested version and do not interfere with other packages installed on the
-system. So after checking out the source code, run these commands::
+(virtualenv). This ensures that all required packages are present in the tested
+version and do not interfere with other packages installed on the system. The
+easiest way to do so, is to simply source ``setup.sh`` after checking out the
+source code::
+
+    $ . setup.sh
+
+This will automatically do something along these lines::
 
     $ # Create a new virtual environment
     $ virtualenv ENV
@@ -28,13 +33,10 @@ system. So after checking out the source code, run these commands::
     $ # Install actual package
     $ pip install -e .
 
-Or you can just source the provided ``setup.sh``. It will do these steps for
-you::
-
-    $ . setup.sh
-
-You can also specify which Python version to use with e.g. ``-p python3``.
-You might need to install additional system libraries to compile all packages.
+It will only create a new virtual environment if one does not exist already.
+You can also specify which Python version to use by providing the respective
+``virtualenv`` argument to ``setup.sh``, e.g. ``. setup.sh -p python3``. You
+might need to install additional system libraries to compile all packages.
 
 ReMU requires Python 2.7 or >=3.4.
 
