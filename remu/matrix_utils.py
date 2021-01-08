@@ -96,39 +96,55 @@ def mahalanobis_distance(first, second, shape=None, N=None, return_distances_fro
     """
 
     n_reco = first.reco_binning.data_size
-    if 'truth_indices' in kwargs:
-        n_truth = len(kwargs['truth_indices'])
-    else:
-        n_truth = first.truth_binning.data_size
+    truth_indices = kwargs.pop('truth_indices', list(range(first.truth_binning.data_size)))
+    n_truth = len(truth_indices)
     n_bins = n_truth * n_reco
     if N is None:
         N = n_reco + 100
 
-    # Get the *transposed* set of matrices
-    self_matrices = first.generate_random_response_matrices(size=N, **kwargs).T
-
-    other_matrices = second.generate_random_response_matrices(size=N, **kwargs).T
-    differences = self_matrices - other_matrices
-
     # Since the detector response is handled completely independently for each truth index,
     # we can calculate the covariance matrices and distances for each one individually.
-    inv_cov_list = []
-    for i in range(n_truth):
-        cov = np.cov(differences[i])
-        inv_cov_list.append(np.linalg.inv(cov))
+    distance = []
+    distances_from_mean = []
+    for i in truth_indices: # TODO: Chunk this when number of reco bins allows it
+        indices = [i]
 
-    null = np.zeros((n_truth, n_reco))
-    mean = (first.get_mean_response_matrix_as_ndarray(**kwargs)
-        - second.get_mean_response_matrix_as_ndarray(**kwargs)).T
+        # Get the *transposed* set of matrices
+        first_matrices = first.generate_random_response_matrices(size=N, truth_indices=indices, **kwargs).T
 
-    distance = _block_mahalanobis2([null], mean, inv_cov_list)[0]
+        second_matrices = second.generate_random_response_matrices(size=N, truth_indices=indices, **kwargs).T
 
+        differences = first_matrices - second_matrices
+
+        inv_cov_list = []
+        # Actually calculate the inverse covariances
+        for j in range(len(indices)):
+            cov = np.cov(differences[j])
+            inv_cov_list.append(np.linalg.inv(cov))
+
+        null = np.zeros((len(indices), n_reco))
+        mean = (first.get_mean_response_matrix_as_ndarray(truth_indices=indices, **kwargs)
+            - second.get_mean_response_matrix_as_ndarray(truth_indices=indices, **kwargs)).T
+
+        # Append the distances of the current truth bins to the total
+        distance.extend(_block_mahalanobis2([null], mean, inv_cov_list)[0])
+
+        # Calculate distances of throws
+        if return_distances_from_mean:
+            differences = differences.transpose((2,0,1)) # (truth, reco, N) -> (N, truth, reco)
+            distances_from_mean_temp = _block_mahalanobis2(differences, mean, inv_cov_list)
+            distances_from_mean_temp = distances_from_mean_temp.transpose() # (N, truth) -> (truth, N)
+            distances_from_mean.extend(distances_from_mean_temp)
+
+    # Reshape if asked for
+    distance = np.array(distance)
+    distances_from_mean = np.array(distances_from_mean).transpose()
     if shape is not None:
         distance = distance.reshape(shape, order='C')
+        if return_distances_from_mean:
+            distances_from_mean = distances_from_mean.reshape(N+shape, order='C')
 
     if return_distances_from_mean:
-        differences = differences.transpose((2,0,1)) # (truth, reco, N) -> (N, truth, reco)
-        distances_from_mean = _block_mahalanobis2(differences, mean, inv_cov_list)
         return distance, distances_from_mean
     else:
         return distance
